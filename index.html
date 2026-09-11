@@ -462,26 +462,29 @@
     return out.join("\n");
   }
 
-  /* ---- backend sync ---- */
-  var API_URL = "https://ironlog-api.isaac-kps-play.workers.dev";
-  var API_KEY = "1f0372bba39b69691333fb0ce9db7294db3b4690610d93d5";
-
+  /* ---- backend sync ----
+     Served from the Worker itself, so this is same-origin and the httpOnly
+     session cookie authenticates us. No secret lives in this file. */
   function payload(){
     var P=PLAN[S.cur.letter], lifts=[];
     P.ex.forEach(function(ex){
       var reps=(S.cur.logs[ex.id]||[]).filter(function(x){return x!=null;});
       if(reps.length) lifts.push({ name:ex.n, weight:(ex.w? wtFor(ex):0), reps:reps });
     });
-    return { secret:API_KEY, date:S.cur.date, workout:S.cur.letter, lifts:lifts };
+    return { date:S.cur.date, workout:S.cur.letter, lifts:lifts };
   }
 
   function syncNow(){
     var st=document.getElementById("syncstate");
     st.textContent="Sending to Teddy…"; st.className="syncstate busy";
-    return fetch(API_URL+"/session",{
+    return fetch("/session",{
       method:"POST", headers:{"content-type":"application/json"},
+      credentials:"same-origin",
       body:JSON.stringify(payload())
-    }).then(function(r){ return r.json(); }).then(function(j){
+    }).then(function(r){
+      if(r.status===401){ location.reload(); return {}; }
+      return r.json();
+    }).then(function(j){
       if(j && j.ok){
         st.textContent="✓ Sent to Teddy"; st.className="syncstate ok";
         S.cur.synced=true; save();
