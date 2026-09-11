@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14171C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Iron Log — Bulk Programme</title>
+<style>
+  :root{
+    --ground:#14171C; --surface:#1B1F26; --surface-2:#232832; --line:#2E3440;
+    --ink:#E9EBEE; --muted:#8B919C; --faint:#5C636F;
+    --accent:#D97A34; --accent-soft:#3A2718; --accent-ink:#F0A468;
+    --done:#4E9A6B; --done-soft:#16281E;
+    --warn:#C9A227;
+    --radius:10px;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --ground:#F2F1EE; --surface:#FFFFFF; --surface-2:#F7F6F3; --line:#DFDDD7;
+      --ink:#1A1D22; --muted:#6A7079; --faint:#9AA0A8;
+      --accent:#B4571A; --accent-soft:#F7E7D8; --accent-ink:#8E4413;
+      --done:#3C7C53; --done-soft:#E2F0E7;
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#F2F1EE; --surface:#FFFFFF; --surface-2:#F7F6F3; --line:#DFDDD7;
+    --ink:#1A1D22; --muted:#6A7079; --faint:#9AA0A8;
+    --accent:#B4571A; --accent-soft:#F7E7D8; --accent-ink:#8E4413;
+    --done:#3C7C53; --done-soft:#E2F0E7;
+  }
+  :root[data-theme="dark"]{
+    --ground:#14171C; --surface:#1B1F26; --surface-2:#232832; --line:#2E3440;
+    --ink:#E9EBEE; --muted:#8B919C; --faint:#5C636F;
+    --accent:#D97A34; --accent-soft:#3A2718; --accent-ink:#F0A468;
+    --done:#4E9A6B; --done-soft:#16281E;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink); font-family:var(--sans);
+    margin:0; padding:0 0 96px; line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px; margin:0 auto; padding:0 16px}
+
+  /* ---- header ---- */
+  header{
+    position:sticky; top:0; z-index:20; background:var(--ground);
+    border-bottom:1px solid var(--line); padding:14px 0 12px;
+  }
+  .hdr-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted);
+  }
+  h1{
+    font-size:26px; margin:2px 0 0; letter-spacing:-.02em; font-weight:650;
+    text-wrap:balance;
+  }
+  .wk-badge{
+    font-family:var(--mono); font-size:12px; color:var(--accent-ink);
+    background:var(--accent-soft); border:1px solid var(--accent);
+    padding:4px 9px; border-radius:100px; white-space:nowrap;
+  }
+  .subline{color:var(--muted); font-size:13px; margin-top:4px}
+
+  /* ---- exercise card ---- */
+  .cards{display:flex; flex-direction:column; gap:12px; margin-top:16px}
+  .card{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius); padding:14px;
+  }
+  .card.done{border-color:var(--done)}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+  .ex-name{font-weight:600; font-size:16px; letter-spacing:-.01em}
+  .ex-target{
+    font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:2px;
+    font-variant-numeric:tabular-nums;
+  }
+  .wt{display:flex; align-items:center; gap:6px; flex-shrink:0}
+  .wt input{
+    width:64px; text-align:right; font-family:var(--mono); font-size:17px; font-weight:600;
+    background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+    border-radius:8px; padding:7px 8px; font-variant-numeric:tabular-nums;
+  }
+  .wt input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+  .wt-unit{font-family:var(--mono); font-size:12px; color:var(--faint)}
+
+  .sets{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+  .set{
+    flex:1 1 0; min-width:62px; border:1px solid var(--line); background:var(--surface-2);
+    border-radius:8px; padding:9px 4px 8px; text-align:center; cursor:pointer;
+    font-family:var(--mono); color:var(--muted); transition:background .12s,border-color .12s,color .12s;
+  }
+  .set:hover{border-color:var(--accent)}
+  .set:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .set .n{display:block; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint)}
+  .set .r{display:block; font-size:19px; font-weight:650; color:var(--ink); font-variant-numeric:tabular-nums; margin-top:1px}
+  .set.logged{background:var(--done-soft); border-color:var(--done)}
+  .set.logged .r{color:var(--done)}
+
+  .card-foot{display:flex; gap:14px; margin-top:10px}
+  .linkbtn{
+    background:none; border:none; padding:0; cursor:pointer; font-family:var(--mono);
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint);
+  }
+  .linkbtn:hover{color:var(--accent-ink)}
+  .linkbtn:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+
+  /* ---- rest timer ---- */
+  #rest{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:78px; z-index:30;
+    background:var(--surface-2); border:1px solid var(--accent); color:var(--ink);
+    border-radius:100px; padding:9px 16px; display:none; align-items:center; gap:10px;
+    font-family:var(--mono); font-size:14px; font-variant-numeric:tabular-nums;
+    box-shadow:0 6px 24px rgba(0,0,0,.3);
+  }
+  #rest.show{display:flex}
+  #rest .lbl{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+  #rest button{background:none;border:none;color:var(--faint);cursor:pointer;font-size:16px;padding:0 2px}
+
+  /* ---- bottom bar ---- */
+  .bar{
+    position:fixed; bottom:0; left:0; right:0; z-index:25;
+    background:var(--ground); border-top:1px solid var(--line); padding:12px 16px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  }
+  .bar-inner{max-width:560px; margin:0 auto; display:flex; gap:10px; align-items:center}
+  .btn{
+    flex:1; background:var(--accent); color:#fff; border:none; border-radius:var(--radius);
+    padding:14px; font-size:15px; font-weight:600; cursor:pointer; font-family:var(--sans);
+  }
+  .btn:disabled{background:var(--surface-2); color:var(--faint); cursor:not-allowed}
+  .btn:focus-visible{outline:2px solid var(--accent-ink); outline-offset:2px}
+  .btn-ghost{
+    flex:0 0 auto; background:var(--surface-2); color:var(--muted); border:1px solid var(--line);
+    border-radius:var(--radius); padding:14px 13px; cursor:pointer; font-size:15px;
+  }
+
+  /* ---- sheet ---- */
+  .sheet-bg{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:40; display:none;
+    align-items:flex-end; justify-content:center;
+  }
+  .sheet-bg.show{display:flex}
+  .sheet{
+    background:var(--surface); border:1px solid var(--line); border-bottom:none;
+    border-radius:16px 16px 0 0; width:100%; max-width:560px; max-height:88vh; overflow-y:auto;
+    padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  }
+  .sheet h2{margin:0 0 4px; font-size:19px; letter-spacing:-.01em}
+  .sheet p.sub{margin:0 0 14px; color:var(--muted); font-size:13px}
+  pre.summary{
+    background:var(--ground); border:1px solid var(--line); border-radius:8px;
+    padding:12px; font-family:var(--mono); font-size:12.5px; line-height:1.55;
+    white-space:pre-wrap; word-break:break-word; margin:0 0 14px; color:var(--ink);
+    max-height:34vh; overflow-y:auto;
+  }
+  .sheet-actions{display:flex; flex-direction:column; gap:8px}
+  .sheet .btn-sec{
+    background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+    border-radius:var(--radius); padding:13px; font-size:14.5px; cursor:pointer;
+    font-family:var(--sans); text-align:center; text-decoration:none; display:block;
+  }
+  .syncstate{
+    font-family:var(--mono); font-size:12.5px; padding:9px 11px; border-radius:8px;
+    margin:0 0 12px; border:1px solid var(--line); background:var(--surface-2); color:var(--muted);
+  }
+  .syncstate.busy{border-color:var(--accent); color:var(--accent-ink)}
+  .syncstate.ok{border-color:var(--done); color:var(--done); background:var(--done-soft)}
+  .syncstate.bad{border-color:var(--warn); color:var(--warn)}
+  .toast{
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+    background:var(--done); color:#fff; padding:10px 18px; border-radius:100px;
+    font-size:14px; z-index:60; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .toast.show{opacity:1}
+
+  /* ---- history ---- */
+  .hist{margin-top:26px; border-top:1px solid var(--line); padding-top:16px}
+  .hist h3{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); font-weight:500; margin:0 0 10px;
+  }
+  .hrow{
+    display:flex; justify-content:space-between; gap:10px; padding:9px 0;
+    border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .hrow:last-child{border-bottom:none}
+  .hrow .hd{font-family:var(--mono); color:var(--muted); font-variant-numeric:tabular-nums}
+  .hrow .hv{color:var(--ink); text-align:right}
+  .empty{color:var(--faint); font-size:13px; font-style:italic}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="hdr-row">
+      <div>
+        <div class="eyebrow" id="today">—</div>
+        <h1 id="wtitle">Workout</h1>
+        <div class="subline" id="wsub">—</div>
+      </div>
+      <div class="wk-badge" id="wkb">SESSION 1</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cards" id="cards"></div>
+
+  <div class="hist">
+    <h3>Recent sessions</h3>
+    <div id="hist"></div>
+  </div>
+</div>
+
+<div id="rest">
+  <span class="lbl">Rest</span><span id="restt">2:00</span>
+  <button id="restx" aria-label="Dismiss rest timer">✕</button>
+</div>
+
+<div class="bar">
+  <div class="bar-inner">
+    <button class="btn-ghost" id="swap" title="Switch workout A/B">⇄</button>
+    <button class="btn-ghost" id="cal" title="Download calendar file">📅</button>
+    <button class="btn" id="finish">Finish workout</button>
+  </div>
+</div>
+
+<div class="sheet-bg" id="sheetbg">
+  <div class="sheet">
+    <h2>Session complete</h2>
+    <p class="sub">Sending straight to Teddy — he'll log it and set next session's weights.</p>
+    <div class="syncstate" id="syncstate">Sending to Teddy…</div>
+    <pre class="summary" id="summary"></pre>
+    <div class="sheet-actions">
+      <button class="btn-sec" id="resync">Try sending again</button>
+      <button class="btn" id="copy">Copy for Teddy</button>
+      <a class="btn-sec" id="tg" href="#" target="_blank" rel="noopener">Open Telegram</a>
+      <button class="btn-sec" id="close">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "ironlog.v1";
+  var PLAN = {
+    A: { name:"Workout A", focus:"Squat · Bench · Row",
+      ex:[
+        {id:"sq",  n:"Barbell Back Squat",    sets:3, reps:8,  w:40, rest:150},
+        {id:"bp",  n:"Barbell Bench Press",   sets:3, reps:8,  w:35, rest:150},
+        {id:"row", n:"Seated Cable Row",      sets:3, reps:10, w:35, rest:90},
+        {id:"ohp", n:"DB Shoulder Press",     sets:3, reps:10, w:12, rest:90},
+        {id:"tri", n:"Triceps Rope Pushdown", sets:2, reps:12, w:15, rest:60},
+        {id:"pl",  n:"Plank (seconds)",       sets:3, reps:40, w:0,  rest:60}
+      ]},
+    B: { name:"Workout B", focus:"RDL · Pulldown · Incline",
+      ex:[
+        {id:"rdl", n:"Romanian Deadlift",     sets:3, reps:8,  w:40, rest:150},
+        {id:"lat", n:"Lat Pulldown",          sets:3, reps:10, w:35, rest:90},
+        {id:"inc", n:"Incline DB Press",      sets:3, reps:10, w:14, rest:90},
+        {id:"lp",  n:"Leg Press",             sets:3, reps:12, w:60, rest:120},
+        {id:"cur", n:"DB Bicep Curl",         sets:2, reps:12, w:8,  rest:60},
+        {id:"fp",  n:"Face Pull",             sets:2, reps:15, w:15, rest:60}
+      ]}
+  };
+
+  var S = load();
+  function load(){
+    try{
+      var r = JSON.parse(localStorage.getItem(KEY));
+      if(r && r.history) return r;
+    }catch(e){}
+    return { history:[], weights:{}, cur:null, forced:null };
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+  function letter(){
+    if(S.forced) return S.forced;
+    return (S.history.length % 2 === 0) ? "A" : "B";
+  }
+  function wtFor(ex){
+    return (S.weights[ex.id] !== undefined) ? S.weights[ex.id] : ex.w;
+  }
+
+  function ensureCur(){
+    var L = letter();
+    var d = new Date().toISOString().slice(0,10);
+    if(!S.cur || S.cur.letter !== L || S.cur.date !== d){
+      S.cur = { letter:L, date:d, logs:{} };
+      save();
+    }
+  }
+
+  var elCards = document.getElementById("cards");
+
+  function render(){
+    ensureCur();
+    var L = S.cur.letter, P = PLAN[L];
+    var now = new Date();
+    var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    var mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    document.getElementById("today").textContent =
+      days[now.getDay()] + " · " + now.getDate() + " " + mon[now.getMonth()];
+    document.getElementById("wtitle").textContent = P.name;
+    document.getElementById("wsub").textContent = P.focus;
+    document.getElementById("wkb").textContent = "SESSION " + (S.history.length + 1);
+
+    elCards.innerHTML = "";
+    P.ex.forEach(function(ex){
+      var logs = S.cur.logs[ex.id] || [];
+      var nSets = (S.cur.setsOverride && S.cur.setsOverride[ex.id]) || ex.sets;
+      var doneAll = logs.filter(function(x){return x!=null;}).length >= nSets;
+
+      var c = document.createElement("div");
+      c.className = "card" + (doneAll ? " done" : "");
+
+      var top = document.createElement("div");
+      top.className = "card-top";
+      var meta = document.createElement("div");
+      var nm = document.createElement("div"); nm.className="ex-name"; nm.textContent = ex.n;
+      var tg = document.createElement("div"); tg.className="ex-target";
+      tg.textContent = nSets + " × " + ex.reps + (ex.w ? "  ·  target" : "  ·  hold");
+      meta.appendChild(nm); meta.appendChild(tg);
+      top.appendChild(meta);
+
+      if(ex.w){
+        var wt = document.createElement("div"); wt.className="wt";
+        var inp = document.createElement("input");
+        inp.type="number"; inp.inputMode="decimal"; inp.step="0.5"; inp.value = wtFor(ex);
+        inp.setAttribute("aria-label", ex.n + " weight in kg");
+        inp.addEventListener("change", function(){
+          S.weights[ex.id] = parseFloat(inp.value) || 0; save();
+        });
+        var u = document.createElement("span"); u.className="wt-unit"; u.textContent="kg";
+        wt.appendChild(inp); wt.appendChild(u); top.appendChild(wt);
+      }
+      c.appendChild(top);
+
+      var setsWrap = document.createElement("div"); setsWrap.className="sets";
+      for(var i=0;i<nSets;i++){
+        (function(idx){
+          var b = document.createElement("button");
+          var val = logs[idx];
+          b.className = "set" + (val!=null ? " logged" : "");
+          b.innerHTML = '<span class="n">Set '+(idx+1)+'</span><span class="r">'+
+                        (val!=null ? val : ex.reps)+'</span>';
+          b.setAttribute("aria-label","Set "+(idx+1)+" of "+ex.n);
+          b.addEventListener("click", function(){ logSet(ex, idx, nSets); });
+          setsWrap.appendChild(b);
+        })(i);
+      }
+      c.appendChild(setsWrap);
+
+      var foot = document.createElement("div"); foot.className="card-foot";
+      var addS = mkLink("+ set", function(){
+        S.cur.setsOverride = S.cur.setsOverride || {};
+        S.cur.setsOverride[ex.id] = nSets + 1; save(); render();
+      });
+      var rmS = mkLink("− set", function(){
+        if(nSets<=1) return;
+        S.cur.setsOverride = S.cur.setsOverride || {};
+        S.cur.setsOverride[ex.id] = nSets - 1;
+        if(S.cur.logs[ex.id]) S.cur.logs[ex.id] = S.cur.logs[ex.id].slice(0,nSets-1);
+        save(); render();
+      });
+      var clr = mkLink("clear", function(){
+        delete S.cur.logs[ex.id]; save(); render();
+      });
+      foot.appendChild(addS); foot.appendChild(rmS); foot.appendChild(clr);
+      c.appendChild(foot);
+      elCards.appendChild(c);
+    });
+    renderHist();
+    document.getElementById("finish").disabled = countLogged() === 0;
+  }
+
+  function mkLink(txt, fn){
+    var b=document.createElement("button"); b.className="linkbtn"; b.textContent=txt;
+    b.addEventListener("click",fn); return b;
+  }
+
+  function logSet(ex, idx, nSets){
+    var logs = S.cur.logs[ex.id] || [];
+    while(logs.length < nSets) logs.push(null);
+    if(logs[idx] == null){
+      logs[idx] = ex.reps;                       // first tap = hit target
+    } else if(logs[idx] > 0){
+      logs[idx] = logs[idx] - 1;                 // tap down for missed reps
+    } else {
+      logs[idx] = null;                          // wrap round to un-log
+    }
+    S.cur.logs[ex.id] = logs; save(); render();
+    if(logs[idx] != null) startRest(ex.rest || 90);
+  }
+
+  function countLogged(){
+    var n=0; for(var k in S.cur.logs){
+      (S.cur.logs[k]||[]).forEach(function(v){ if(v!=null) n++; });
+    } return n;
+  }
+
+  /* rest timer */
+  var restInt=null, restLeft=0;
+  var restEl=document.getElementById("rest"), restT=document.getElementById("restt");
+  function startRest(sec){
+    restLeft = sec; restEl.classList.add("show"); paint();
+    if(restInt) clearInterval(restInt);
+    restInt = setInterval(function(){
+      restLeft--; paint();
+      if(restLeft<=0){ clearInterval(restInt); restEl.classList.remove("show"); }
+    },1000);
+  }
+  function paint(){
+    var m=Math.floor(restLeft/60), s=restLeft%60;
+    restT.textContent = m+":"+(s<10?"0":"")+s;
+  }
+  document.getElementById("restx").addEventListener("click",function(){
+    if(restInt) clearInterval(restInt); restEl.classList.remove("show");
+  });
+
+  /* history */
+  function renderHist(){
+    var h=document.getElementById("hist");
+    if(!S.history.length){ h.innerHTML='<div class="empty">No sessions logged yet.</div>'; return; }
+    h.innerHTML="";
+    S.history.slice(-6).reverse().forEach(function(s){
+      var r=document.createElement("div"); r.className="hrow";
+      var d=document.createElement("div"); d.className="hd"; d.textContent=s.date+"  "+s.letter;
+      var v=document.createElement("div"); v.className="hv"; v.textContent=s.top||(s.sets+" sets");
+      r.appendChild(d); r.appendChild(v); h.appendChild(r);
+    });
+  }
+
+  /* finish */
+  function summary(){
+    var P=PLAN[S.cur.letter], out=[];
+    out.push("SESSION LOG — Workout "+S.cur.letter+" — "+S.cur.date);
+    P.ex.forEach(function(ex){
+      var logs=(S.cur.logs[ex.id]||[]).filter(function(x){return x!=null;});
+      if(!logs.length) return;
+      var w=wtFor(ex);
+      out.push("• "+ex.n+": "+(ex.w? w+"kg × ":"")+logs.join(", "));
+    });
+    var miss=[];
+    P.ex.forEach(function(ex){
+      if(!(S.cur.logs[ex.id]||[]).filter(function(x){return x!=null;}).length) miss.push(ex.n);
+    });
+    if(miss.length) out.push("(skipped: "+miss.join(", ")+")");
+    return out.join("\n");
+  }
+
+  /* ---- backend sync ---- */
+  var API_URL = "https://ironlog-api.isaac-kps-play.workers.dev";
+  var API_KEY = "1f0372bba39b69691333fb0ce9db7294db3b4690610d93d5";
+
+  function payload(){
+    var P=PLAN[S.cur.letter], lifts=[];
+    P.ex.forEach(function(ex){
+      var reps=(S.cur.logs[ex.id]||[]).filter(function(x){return x!=null;});
+      if(reps.length) lifts.push({ name:ex.n, weight:(ex.w? wtFor(ex):0), reps:reps });
+    });
+    return { secret:API_KEY, date:S.cur.date, workout:S.cur.letter, lifts:lifts };
+  }
+
+  function syncNow(){
+    var st=document.getElementById("syncstate");
+    st.textContent="Sending to Teddy…"; st.className="syncstate busy";
+    return fetch(API_URL+"/session",{
+      method:"POST", headers:{"content-type":"application/json"},
+      body:JSON.stringify(payload())
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if(j && j.ok){
+        st.textContent="✓ Sent to Teddy"; st.className="syncstate ok";
+        S.cur.synced=true; save();
+      } else {
+        throw new Error((j && j.error) || "rejected");
+      }
+    }).catch(function(e){
+      st.textContent="Couldn't reach Teddy — copy below and paste it to him";
+      st.className="syncstate bad";
+    });
+  }
+
+  var bg=document.getElementById("sheetbg");
+  document.getElementById("finish").addEventListener("click",function(){
+    var txt=summary();
+    document.getElementById("summary").textContent=txt;
+    document.getElementById("tg").href="https://t.me/share/url?url=&text="+encodeURIComponent(txt);
+    bg.classList.add("show");
+    syncNow();
+  });
+  document.getElementById("resync").addEventListener("click",syncNow);
+  document.getElementById("close").addEventListener("click",function(){ commit(); });
+  bg.addEventListener("click",function(e){ if(e.target===bg) commit(); });
+
+  function commit(){
+    var P=PLAN[S.cur.letter], best="";
+    for(var i=0;i<P.ex.length;i++){
+      var ex=P.ex[i];
+      if((S.cur.logs[ex.id]||[]).filter(function(x){return x!=null;}).length){
+        best=ex.n.split(" ").slice(-2).join(" ")+" "+wtFor(ex)+"kg"; break;
+      }
+    }
+    S.history.push({ date:S.cur.date, letter:S.cur.letter, sets:countLogged(), top:best });
+    S.cur=null; S.forced=null; save(); bg.classList.remove("show"); render();
+    toast("Session saved");
+  }
+
+  document.getElementById("copy").addEventListener("click",function(){
+    var t=document.getElementById("summary").textContent;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(function(){toast("Copied — paste to Teddy");},fallback);
+    } else fallback();
+    function fallback(){
+      var ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta);
+      ta.select(); try{document.execCommand("copy"); toast("Copied — paste to Teddy");}catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+
+  var tEl=document.getElementById("toast"), tTo=null;
+  function toast(m){
+    tEl.textContent=m; tEl.classList.add("show");
+    if(tTo) clearTimeout(tTo);
+    tTo=setTimeout(function(){tEl.classList.remove("show");},1900);
+  }
+
+  document.getElementById("swap").addEventListener("click",function(){
+    S.forced = (S.cur.letter==="A") ? "B" : "A";
+    S.cur=null; save(); render(); toast("Switched to Workout "+S.forced);
+  });
+
+  /* calendar — Mon/Wed/Sat for 12 weeks, alternating A/B */
+  document.getElementById("cal").addEventListener("click",function(){
+    var lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Teddy//Iron Log//EN","CALSCALE:GREGORIAN"];
+    var d=new Date(); d.setHours(19,0,0,0);
+    var n=0, made=0;
+    while(made<36 && n<200){
+      var day=d.getDay();
+      if(day===1||day===3||day===6){
+        var L=(made%2===0)?"A":"B";
+        var st=fmt(d), en=fmt(new Date(d.getTime()+60*60*1000));
+        lines.push("BEGIN:VEVENT","UID:ironlog-"+st+"@teddy","DTSTAMP:"+fmt(new Date()),
+          "DTSTART:"+st,"DTEND:"+en,"SUMMARY:Gym — Workout "+L,
+          "DESCRIPTION:"+PLAN[L].focus.replace(/·/g,"-"),"END:VEVENT");
+        made++;
+      }
+      d=new Date(d.getTime()+86400000); d.setHours(19,0,0,0); n++;
+    }
+    lines.push("END:VCALENDAR");
+    var blob=new Blob([lines.join("\r\n")],{type:"text/calendar"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download="iron-log.ics";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast("Calendar file downloaded");
+    function fmt(x){
+      function p(v){return (v<10?"0":"")+v;}
+      return x.getUTCFullYear()+p(x.getUTCMonth()+1)+p(x.getUTCDate())+"T"+
+             p(x.getUTCHours())+p(x.getUTCMinutes())+"00Z";
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

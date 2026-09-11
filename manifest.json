@@ -1,0 +1,9 @@
+{
+  "name": "Iron Log",
+  "short_name": "Iron Log",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#14171C",
+  "theme_color": "#14171C",
+  "orientation": "portrait"
+}
